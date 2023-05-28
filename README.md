@@ -30,6 +30,8 @@ This program is designed to view and update  company employee's information like
 
 ## Preview
 
+![EER diagram](https://github.com/Amritpal-Kaur0/Employee_Tracker/assets/128442182/e75acc6b-a296-4983-83f6-80333f6610b4)
+
 
 ## Technologies Used
 
