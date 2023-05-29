@@ -63,7 +63,7 @@ function promptchoices(){
 function viewDepartments(){
     db.query(`SELECT * FROM departments;`,(err,res)=>{
         if(err)throw err;
-       cTable(res);
+       console.table(res);
 
         promptchoices();
 
@@ -85,6 +85,7 @@ function viewRoles(){
         promptchoices();
     })
 }
+//view all employees in database
 function viewEmployees(){
     db.query(`SELECT
      employee.employee_id AS EMPLOYEE_ID,
@@ -105,6 +106,7 @@ function viewEmployees(){
         promptchoices();
     })
 }
+//Bonus - Application allows users to view employees by manager (2 points).
 function viewEmployeesByManager(){
     db.query(`SELECT
     e.Employee_id,
@@ -240,6 +242,7 @@ function addRole() {
     });
   }
   
+//  Bonus- Application allows users to view the total utilized budget of a department—in other words, the combined salaries of all employees in that department (8 points).
   function budgetbyDepartment() {
     db.query('SELECT * FROM departments', (err, res) => {
       if (err) throw err;
@@ -284,4 +287,54 @@ function addRole() {
     });
   }
   
+  function updateEmployeeRole() {
+    // Retrieve the list of employees from the database
+    db.query('SELECT * FROM employee', (err, employees) => {
+      if (err) throw err;
+  
+      // Prompt the user to select an employee to update
+      inquirer.prompt([
+        {
+          name: 'employeeId',
+          type: 'list',
+          message: 'Select the employee to update:',
+          choices: employees.map(employee => ({
+            name: `${employee.first_name} ${employee.last_name}`,
+            value: employee.employee_id
+          }))
+        }
+      ]).then(answer => {
+        const employeeId = answer.employeeId;
+  
+        // Retrieve the list of roles from the database
+        db.query('SELECT * FROM roles', (err, roles) => {
+          if (err) throw err;
+  
+          // Prompt the user to select a new role for the employee
+          inquirer.prompt([
+            {
+              name: 'roleId',
+              type: 'list',
+              message: 'Select the new role for the employee:',
+              choices: roles.map(roles => ({
+                name: roles.role_title,
+                value: roles.role_id
+              }))
+            }
+          ]).then(answer => {
+            const roleId = answer.roleId;
+  
+            // Update the employee's role in the database
+            db.query('UPDATE employee SET role_id = ? WHERE employee_id = ?', [roleId, employeeId], (err, result) => {
+              if (err) throw err;
+  
+              console.log('Employee role updated successfully.');
+              promptchoices();
+            });
+          });
+        });
+      });
+    });
+  }
+
 // promptchoices();
