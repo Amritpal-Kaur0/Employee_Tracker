@@ -7,7 +7,7 @@ const db =mysql.createConnection(
         //RDBMS (MySQL) USER
         user:'root',
          //RDBMS (MySQL) Password
-        password:'',
+        password:'Amrit2000@',
          //RDBMS (MySQL) database name
         database:'Employees_info'
     },

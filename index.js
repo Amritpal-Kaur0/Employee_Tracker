@@ -9,7 +9,7 @@ db.connect((err)=>{
     |                                     |
     |       ***Employees_info***          |                                     |
     |_ __ __ _ __              __ ___ __ _| \n`)
-    // promptchoices();
+    promptchoices();
 })
 function promptchoices(){
    inquirer
@@ -18,28 +18,39 @@ function promptchoices(){
             type:'list',
             name:'option',
             message:'what would you like to do?',
-            choices :['View all Departments','View all Roles','View all Employees','Add a Department','Add a Role','Add an Employee','Update an Employee role', 'View Employees by Manager','close program']
+            choices :['View all Departments',
+            'View all Roles',
+            'View all Employees',
+            'Add a Department',
+            'Add a Role'
+            ,'Add an Employee',
+            'Update an Employee role', 'View Employees by Manager',
+            'View the total utilized budget of a department','close program'
+        ]
         }
 
     ])
     .then(function (promptresponse) {
-        if (promptresponse.option === 'View all Departments') {
+        const chosenOption = promptresponse.option;
+        if (chosenOption === 'View all Departments') {
             viewDepartments();
-        } else if (promptresponse.option === 'View all Roles'){
+        } else if (chosenOption === 'View all Roles'){
             viewRoles();
-        }else if (promptresponse.option === 'View all Employees') {
+        }else if (chosenOption === 'View all Employees') {
             viewEmployees();
-        }else if (promptresponse.option === 'Add a Department') {
+        }else if (chosenOption === 'Add a Department') {
             addDepartment();
-        }else if (promptresponse.option === 'Add a Role') {
+        }else if (chosenOption === 'Add a Role') {
             addRole();
-        }else if (promptresponse.option === 'Add an Employee') {
+        }else if (chosenOption === 'Add an Employee') {
             addEmployee();
-        }else if (promptresponse.option === 'Update an Employee role') {
+        }else if (chosenOption === 'Update an Employee role') {
             updateEmployeeRole();
-        }else if (promptresponse.option === 'View Employees by Manager') {
+        }else if (chosenOption === 'View Employees by Manager') {
             viewEmployeesByManager();
-        } else  if (promptresponse.option === 'close program') {
+        }else if (chosenOption === 'View the total utilized budget of a department') {
+            budgetbyDepartment();
+        } else  if (chosenOption === 'close program') {
             db.end();
         }else{
             console.log("Invalid Attempt");
@@ -52,19 +63,20 @@ function promptchoices(){
 function viewDepartments(){
     db.query(`SELECT * FROM departments;`,(err,res)=>{
         if(err)throw err;
-        console.table(res);
+       cTable(res);
 
         promptchoices();
 
     })
 }
 function viewRoles(){
-    db.query(`SELECT 
-    roles.role_id as ROLE_ID,
-     roles.role_title as ROLE_TITLE,
-      roles.salary as Employee_Salary, 
-      departments.department_id as Department_ID, 
-      departments.department_name as DEPARTMENT
+    db.query(`
+    SELECT 
+    roles.role_id AS ROLE_ID,
+     roles.role_title AS ROLE_TITLE,
+      roles.salary AS Employee_Salary, 
+      departments.department_id AS Department_ID, 
+      departments.department_name AS DEPARTMENT
        FROM 
        roles JOIN departments ON roles.department_id = departments.department_id;`,(err,res)=>{
         if(err)throw err;
@@ -126,7 +138,150 @@ function addDepartment(){
     })
 })
 }
-function addRole(){
-   
-}
-promptchoices();
+function addRole() {
+    db.query('SELECT * FROM departments;', (err, res) => {
+      if (err) throw err;
+      const roleDepartment = res.map(department => ({
+        name: department.department_name,
+        value: department.department_id
+      }));
+  
+      inquirer
+        .prompt([
+          {
+            name: 'departmentName',
+            type: 'list',
+            message: 'Which department does this role belong to?',
+            choices: roleDepartment
+          },
+          {
+            name: 'role_title',
+            type: 'input',
+            message: 'What is the name of the role?'
+          },
+          {
+            name: 'role_salary',
+            type: 'input',
+            message: 'What is the salary for this role?',
+            validate: salaryValue => {
+              if (isNaN(salaryValue)) {
+                console.log('\n Enter a numerical value \n');
+                return false;
+              }
+              return true;
+            }
+          }
+        ])
+        .then(response => {
+          const { departmentName, role_title, role_salary } = response;
+          const query = 'INSERT INTO roles (ROLE_TITLE, salary, department_id) VALUES (?, ?, ?)';
+          const values = [role_title, role_salary, departmentName];
+  
+          db.query(query, values, (err, res) => {
+            if (err) throw err;
+            console.log(`\n ${role_title} has been added in Employee_Info database. \n`);
+            promptchoices();
+          });
+        });
+    });
+  }
+  function addEmployee() {
+    db.query('SELECT * FROM roles;', (err, res) => {
+      if (err) throw err;
+      const employeeRoles = res.map(role => ({
+        name: role.role_title,
+        value: role.role_id
+      }));
+  
+      db.query('SELECT * FROM employee;', (err, res) => {
+        if (err) throw err;
+        const managers = res.map(manager => ({
+          name: `${manager.first_name} ${manager.last_name}`,
+          value: manager.employee_id
+        }));
+  
+        inquirer
+          .prompt([
+            {
+              name: 'first_name',
+              type: 'input',
+              message: "Enter the employee's first name:"
+            },
+            {
+              name: 'last_name',
+              type: 'input',
+              message: "Enter the employee's last name:"
+            },
+            {
+              name: 'role_id',
+              type: 'list',
+              message: "Select the employee's role:",
+              choices: employeeRoles
+            },
+            {
+              name: 'manager_id',
+              type: 'list',
+              message: "Select the employee's manager:",
+              choices: [{ name: 'None', value: null }, ...managers]
+            }
+          ])
+          .then(response => {
+            const { first_name, last_name, role_id, manager_id } = response;
+            const query = 'INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)';
+            const values = [first_name, last_name, role_id, manager_id];
+  
+            db.query(query, values, (err, res) => {
+              if (err) throw err;
+              console.log(`\n ${first_name} ${last_name} has been added to the Employee_Info database. \n`);
+              promptchoices();
+            });
+          });
+      });
+    });
+  }
+  
+  function budgetbyDepartment() {
+    db.query('SELECT * FROM departments', (err, res) => {
+      if (err) throw err;
+      const departmentChoices = res.map(departments => ({
+        name: departments.department_name,
+        value: departments.department_id
+      }));
+  
+      inquirer
+        .prompt([
+          {
+            name: 'departmentId',
+            type: 'list',
+            message: 'Select a department:',
+            choices: departmentChoices
+          }
+        ])
+        .then(response => {
+          const { departmentId } = response;
+  
+          db.query(`
+            SELECT
+              departments.department_name AS Department,
+              SUM(roles.salary) AS Total_Budget
+            FROM
+              departments
+            JOIN
+              roles ON  departments.department_id = roles.department_id
+            JOIN
+              employee ON roles.role_id = employee.role_id
+            WHERE
+            departments.department_id = ?
+            GROUP BY
+              departments.department_name;
+          `, [departmentId], (err, res) => {
+            if (err) throw err;
+            console.table(res);
+  
+            promptchoices();
+          });
+        });
+    });
+  }
+  
+// promptchoices();
